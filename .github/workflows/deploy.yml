@@ -57,8 +57,10 @@ jobs:
           script: |
             set -e
 
-            echo "🧹 Clean up old images..."
-            docker system prune -a -f || true
+            echo "📁 Create app directory..."
+            mkdir -p ~/app/infra
+            cd ~/app
+            cp -r ~/project-hirehub/infra/* ~/app/infra/ || true
 
             echo "📦 Pull latest Docker images..."
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/hirehub-backend:latest
