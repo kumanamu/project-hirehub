@@ -21,6 +21,7 @@ jobs:
           - name: frontend
             context: frontend
             imagename: hirehub-frontend
+
     steps:
       - uses: actions/checkout@v4
 
@@ -38,7 +39,7 @@ jobs:
         with:
           context: ${{ matrix.context }}
           push: true
-          no-cache: true # ✅ 이 줄 추가
+          no-cache: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.imagename }}:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.imagename }}:${{ github.sha }}
@@ -55,6 +56,15 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           source: "infra/docker-compose.prod.yml"
           target: "~/app/infra/"
+
+      - name: 🚀 Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
 
             echo "🧹 도커 빌드 캐시 및 오래된 이미지 정리..."
             docker builder prune -a -f || true
