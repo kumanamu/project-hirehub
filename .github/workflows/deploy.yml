@@ -21,6 +21,7 @@ jobs:
           - name: frontend
             context: frontend
             imagename: hirehub-frontend
+
     steps:
       - uses: actions/checkout@v4
 
@@ -47,51 +48,44 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy on EC2 via SSH
-        uses: appleboy/ssh-action@v1.1.0
+      - name: 🚀 Deploy on EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
-          key_type: pem
           script: |
             set -e
 
-            echo "🧹 도커 빌드 캐시 및 오래된 이미지 정리..."
-            docker builder prune -a -f || true
-            docker image prune -a -f || true
+            echo "🧹 Clean up old images..."
+            docker system prune -a -f || true
 
-            echo "🛠️ Docker 이미지 pull..."
+            echo "📦 Pull latest Docker images..."
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/hirehub-backend:latest
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/hirehub-frontend:latest
 
-            echo "📂 디렉터리 준비..."
-            cd ~/app || { mkdir -p ~/app; cd ~/app; }
+            echo "📁 Create app directory..."
+            mkdir -p ~/app && cd ~/app
 
-            echo "🧩 .env.prod 파일 생성..."
-            cat <<EOF > .env.prod
-RDS_ENDPOINT=${{ secrets.RDS_ENDPOINT }}
-SPRING_PROFILES_ACTIVE=${{ secrets.SPRING_PROFILES_ACTIVE }}
-DB_USERNAME=${{ secrets.DB_USERNAME }}
-DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
-GOOGLE_SECRET=${{ secrets.GOOGLE_SECRET }}
-KAKAO_CLIENT_ID=${{ secrets.KAKAO_CLIENT_ID }}
-KAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET }}
-KAKAO_REDIRECT_URI=${{ secrets.KAKAO_REDIRECT_URI }}
-NAVER_CLIENT_ID=${{ secrets.NAVER_CLIENT_ID }}
-NAVER_CLIENT_SECRET=${{ secrets.NAVER_CLIENT_SECRET }}
-AWS_ACCESS_KEY=${{ secrets.AWS_ACCESS_KEY }}
-AWS_SECRET_KEY=${{ secrets.AWS_SECRET_KEY }}
-JWT_SECRET=${{ secrets.JWT_SECRET }}
-ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }}
-APP_FRONT_REDIRECT_URL=${{ secrets.APP_FRONT_REDIRECT_URL }}
-VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}
-BACKEND_IMAGE=${{ secrets.BACKEND_IMAGE }}
-FRONTEND_IMAGE=${{ secrets.FRONTEND_IMAGE }}
-EOF
+            echo "🧩 Create .env.prod file..."
+            echo "RDS_ENDPOINT=${{ secrets.RDS_ENDPOINT }}" > .env.prod
+            echo "SPRING_PROFILES_ACTIVE=${{ secrets.SPRING_PROFILES_ACTIVE }}" >> .env.prod
+            echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> .env.prod
+            echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env.prod
+            echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" >> .env.prod
+            echo "GOOGLE_SECRET=${{ secrets.GOOGLE_SECRET }}" >> .env.prod
+            echo "KAKAO_CLIENT_ID=${{ secrets.KAKAO_CLIENT_ID }}" >> .env.prod
+            echo "KAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET }}" >> .env.prod
+            echo "NAVER_CLIENT_ID=${{ secrets.NAVER_CLIENT_ID }}" >> .env.prod
+            echo "NAVER_CLIENT_SECRET=${{ secrets.NAVER_CLIENT_SECRET }}" >> .env.prod
+            echo "AWS_ACCESS_KEY=${{ secrets.AWS_ACCESS_KEY }}" >> .env.prod
+            echo "AWS_SECRET_KEY=${{ secrets.AWS_SECRET_KEY }}" >> .env.prod
+            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env.prod
+            echo "ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }}" >> .env.prod
+            echo "BACKEND_IMAGE=${{ secrets.BACKEND_IMAGE }}" >> .env.prod
+            echo "FRONTEND_IMAGE=${{ secrets.FRONTEND_IMAGE }}" >> .env.prod
 
-            echo "🚀 Docker Compose 실행..."
+            echo "🚀 Running Docker Compose..."
             docker compose -f infra/docker-compose.prod.yml --env-file .env.prod up -d --remove-orphans
 
-            echo "✅ 배포 완료!"
+            echo "✅ Deployment completed successfully!"
