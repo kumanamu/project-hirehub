@@ -47,14 +47,14 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
-      - name: 🚀 Deploy to EC2
-        uses: appleboy/ssh-action@v1.0.3
+      - name: 📂 Copy files to EC2
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            set -e
+          source: "infra/docker-compose.prod.yml"
+          target: "~/app/infra/"
 
             echo "🧹 도커 빌드 캐시 및 오래된 이미지 정리..."
             docker builder prune -a -f || true
