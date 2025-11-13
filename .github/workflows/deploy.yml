@@ -65,8 +65,8 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           source: "infra/docker-compose.prod.yml"
-          target: "~/app/"
-          debug: true  # ✅ 이 줄 추가해서 로그 자세히 보기
+          target: "~/app/infra/"
+          debug: true
 
       - name: 🚀 Deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
@@ -82,7 +82,6 @@ jobs:
             docker image prune -a -f || true
 
             echo "📂 디렉터리 준비..."
-            mkdir -p ~/app
             cd ~/app
 
             echo "🧩 .env.prod 파일 생성..."
@@ -102,8 +101,5 @@ jobs:
             FRONTEND_IMAGE=${{ secrets.FRONTEND_IMAGE }}
             EOF
 
-            echo "🚀 Docker Compose 실행..."
-            docker-compose -f infra/docker-compose.prod.yml --env-file .env.prod up -d --remove-orphans
-
-
-  
+            echo "🚀 Docker Compose 실행 (V2 명령)..."
+            docker compose -f infra/docker-compose.prod.yml --env-file .env.prod up -d --remove-orphans
