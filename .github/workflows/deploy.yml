@@ -78,29 +78,30 @@ jobs:
           script: |
             set -e
 
-            echo "🧹 도커 빌드 캐시 및 오래된 이미지 정리..."
-            docker builder prune -a -f || true
-            docker image prune -a -f || true
-
-            echo "📂 디렉터리 준비..."
-            cd ~/app
-
-            echo "🧩 .env.prod 파일 생성..."
-            cat <<EOF > .env.prod
-            RDS_ENDPOINT=${{ secrets.RDS_ENDPOINT }}
-            SPRING_PROFILES_ACTIVE=${{ secrets.SPRING_PROFILES_ACTIVE }}
-            USERNAME=${{ secrets.DB_USERNAME }}
-            PASSWORD=${{ secrets.DB_PASSWORD }}
-            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
-            GOOGLE_SECRET=${{ secrets.GOOGLE_SECRET }}
-            AWS_ACCESS_KEY=${{ secrets.AWS_ACCESS_KEY }}
-            AWS_SECRET_KEY=${{ secrets.AWS_SECRET_KEY }}
-            JWT_SECRET=${{ secrets.JWT_SECRET }}
-            ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }}
-            DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
-            BACKEND_IMAGE=${{ secrets.BACKEND_IMAGE }}
-            FRONTEND_IMAGE=${{ secrets.FRONTEND_IMAGE }}
-            EOF
-
-            echo "🚀 Docker Compose 실행 (V2 명령)..."
-            docker compose -f infra/docker-compose.prod.yml --env-file .env.prod up -d --remove-orphans
+              echo "🧹 도커 빌드 캐시 및 오래된 이미지 정리..."
+              docker builder prune -a -f || true
+              docker image prune -a -f || true
+        
+              echo "📂 디렉터리 준비..."
+              mkdir -p ~/app/infra
+              cd ~/app/infra
+        
+              echo "🧩 .env.prod 파일 생성..."
+              cat <<EOF > .env.prod
+              RDS_ENDPOINT=${{ secrets.RDS_ENDPOINT }}
+              SPRING_PROFILES_ACTIVE=${{ secrets.SPRING_PROFILES_ACTIVE }}
+              USERNAME=${{ secrets.DB_USERNAME }}
+              PASSWORD=${{ secrets.DB_PASSWORD }}
+              GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+              GOOGLE_SECRET=${{ secrets.GOOGLE_SECRET }}
+              AWS_ACCESS_KEY=${{ secrets.AWS_ACCESS_KEY }}
+              AWS_SECRET_KEY=${{ secrets.AWS_SECRET_KEY }}
+              JWT_SECRET=${{ secrets.JWT_SECRET }}
+              ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }}
+              DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
+              BACKEND_IMAGE=${{ secrets.BACKEND_IMAGE }}
+              FRONTEND_IMAGE=${{ secrets.FRONTEND_IMAGE }}
+              EOF
+        
+              echo "🚀 Docker Compose 실행..."
+              docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --remove-orphans
