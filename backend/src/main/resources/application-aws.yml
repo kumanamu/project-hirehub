@@ -1,10 +1,10 @@
 spring:
-  # AWS RDS 연결
   datasource:
-    url: jdbc:mysql://hirehub-db.cx2suwmo0815.ap-northeast-2.rds.amazonaws.com:3306/hirehub?useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=utf8
+    url: jdbc:mysql://projecthirehub.cd8ooqmm46hx.ap-northeast-1.rds.amazonaws.com:3306/hirehub?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=utf8
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+
     hikari:
       maximum-pool-size: 20
       minimum-idle: 4
