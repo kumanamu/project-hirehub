@@ -1,109 +1,59 @@
-name: CI/CD Monorepo
+deploy:
+  needs: build-and-push
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
 
-on:
-  push:
-    branches: [ "main" ]
-    paths:
-      - 'backend/**'
-      - 'frontend/**'
-      - 'infra/**'
-      - '.github/workflows/deploy.yml'
+    - name: 📂 Create target directory on EC2
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ubuntu
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: mkdir -p ~/app
 
-jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - name: backend
-            context: backend
-            imagename: hirehub-backend
-          - name: frontend
-            context: frontend
-            imagename: hirehub-frontend
+    - name: 📂 Upload docker-compose file to EC2
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ubuntu
+        key: ${{ secrets.EC2_SSH_KEY }}
+        source: "infra/docker-compose.prod.yml"
+        target: "~/app/"
 
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and push ${{ matrix.name }}
-        uses: docker/build-push-action@v6
-        with:
-          context: ${{ matrix.context }}
-          push: true
-          no-cache: true
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.imagename }}:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.imagename }}:${{ github.sha }}
-
-  deploy:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    steps:
-      # ✅ 1. Repo 체크아웃
-      - uses: actions/checkout@v4
-
-      # ✅ 2. EC2에 폴더 생성
-      - name: 📂 Create target directory on EC2
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: mkdir -p ~/app/infra
-
-      # ✅ 3. docker-compose 파일 업로드
-      - name: 📂 Upload docker-compose file to EC2
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
-          source: "infra/docker-compose.prod.yml"
-          target: "~/app/infra/"
-
-      # ✅ 4. 실제 배포 실행
-      - name: 🚀 Deploy to EC2
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            set -e
-
-            echo "🧹 도커 빌드 캐시 및 오래된 이미지 정리..."
-            docker builder prune -a -f || true
-            docker image prune -a -f || true
-
-            echo "📂 디렉터리 준비..."
-            mkdir -p ~/app
-            cd ~/app
-
-            echo "🧩 .env.prod 파일 생성..."
-            cat <<EOF > .env.prod
-            RDS_ENDPOINT=${{ secrets.RDS_ENDPOINT }}
-            SPRING_PROFILES_ACTIVE=${{ secrets.SPRING_PROFILES_ACTIVE }}
-            USERNAME=${{ secrets.DB_USERNAME }}
-            PASSWORD=${{ secrets.DB_PASSWORD }}
-            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
-            GOOGLE_SECRET=${{ secrets.GOOGLE_SECRET }}
-            AWS_ACCESS_KEY=${{ secrets.AWS_ACCESS_KEY }}
-            AWS_SECRET_KEY=${{ secrets.AWS_SECRET_KEY }}
-            JWT_SECRET=${{ secrets.JWT_SECRET }}
-            ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }}
-            DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
-            BACKEND_IMAGE=${{ secrets.BACKEND_IMAGE }}
-            FRONTEND_IMAGE=${{ secrets.FRONTEND_IMAGE }}
-            EOF
-
-            echo "🚀 Docker Compose 실행..."
-            docker-compose -f infra/docker-compose.prod.yml --env-file .env.prod up -d --remove-orphans
+    - name: 🚀 Deploy to EC2
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ubuntu
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          set -e
+          
+          echo "🧹 도커 빌드 캐시 및 오래된 이미지 정리..."
+          docker builder prune -a -f || true
+          docker image prune -a -f || true
+          
+          echo "📂 디렉터리 준비..."
+          mkdir -p ~/app
+          cd ~/app
+          
+          echo "🧩 .env.prod 파일 생성..."
+          cat <<EOF > .env.prod
+          RDS_ENDPOINT=${{ secrets.RDS_ENDPOINT }}
+          SPRING_PROFILES_ACTIVE=${{ secrets.SPRING_PROFILES_ACTIVE }}
+          USERNAME=${{ secrets.DB_USERNAME }}
+          PASSWORD=${{ secrets.DB_PASSWORD }}
+          GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_SECRET=${{ secrets.GOOGLE_SECRET }}
+          AWS_ACCESS_KEY=${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_KEY=${{ secrets.AWS_SECRET_KEY }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }}
+          DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
+          BACKEND_IMAGE=${{ secrets.BACKEND_IMAGE }}
+          FRONTEND_IMAGE=${{ secrets.FRONTEND_IMAGE }}
+          EOF
+          
+          echo "🚀 Docker Compose 실행..."
+          docker-compose -f docker-compose.prod.yml --env-file .env.prod up -d --remove-orphans
