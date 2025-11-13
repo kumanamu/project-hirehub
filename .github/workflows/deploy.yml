@@ -39,11 +39,12 @@ jobs:
         with:
           context: ${{ matrix.context }}
           push: true
-          no-cache: true
+          build-args: |
+            CACHE_BREAK=${{ github.run_number }}
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.imagename }}:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.imagename }}:${{ github.sha }}
-
+            
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
