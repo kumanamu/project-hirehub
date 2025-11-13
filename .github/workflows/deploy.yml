@@ -66,6 +66,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           source: "infra/docker-compose.prod.yml"
           target: "~/app/"
+          debug: true  # ✅ 이 줄 추가해서 로그 자세히 보기
 
       - name: 🚀 Deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
