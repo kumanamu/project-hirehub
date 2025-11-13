@@ -9,10 +9,6 @@ aws:
     secret-key: ${AWS_SECRET_KEY}
   region: ap-northeast-2
 
-spring:
-  profiles:
-    active: aws
-
   jpa:
     hibernate:
       ddl-auto: update
