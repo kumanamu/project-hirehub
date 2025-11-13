@@ -48,11 +48,11 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
-      # ✅ 1. Repo 체크아웃 (반드시 있어야 infra 폴더를 읽음)
+      # ✅ 1. Repo 체크아웃
       - uses: actions/checkout@v4
 
-      # ✅ 2. docker-compose.prod.yml 파일을 EC2로 복사
-      - name: 📂 Copy docker-compose.prod.yml to EC2
+      # ✅ 2. EC2에 폴더 생성
+      - name: 📂 Create target directory on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -60,7 +60,8 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: mkdir -p ~/app/infra
 
-      - name: 📂 Upload docker-compose file
+      # ✅ 3. docker-compose 파일 업로드
+      - name: 📂 Upload docker-compose file to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -68,6 +69,15 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           source: "infra/docker-compose.prod.yml"
           target: "~/app/infra/"
+
+      # ✅ 4. 실제 배포 실행
+      - name: 🚀 Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
             set -e
 
             echo "🧹 도커 빌드 캐시 및 오래된 이미지 정리..."
